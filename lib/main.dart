@@ -14,8 +14,10 @@ void main() {
       debugShowCheckedModeBanner: false,
       initialRoute:"/",
       routes:{
+
+
         "/":(context)=>Home(),
-       
+
       }
       
     ,

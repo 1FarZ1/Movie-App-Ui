@@ -1,11 +1,25 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:math/Network/manager.dart';
 import 'package:math/Screens/detailes.dart';
 import 'package:math/const.dart';
 import 'package:math/models/movie.dart';
 
-class Home extends StatelessWidget {
+var selected_section = 0;
+var sections = [
+  DataManager.Tmovies_api,
+  DataManager.Bmovies_api,
+  DataManager.Cmovies_api
+];
+
+class Home extends StatefulWidget {
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  List movies = [];
   List<String> Categories = [
     "Drama",
     "Action",
@@ -18,6 +32,14 @@ class Home extends StatelessWidget {
     "Comic",
     "Anime",
   ];
+  void manage(var a) {
+    movies = a;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,11 +49,19 @@ class Home extends StatelessWidget {
           backgroundColor: Colors.white,
           elevation: 0,
           toolbarHeight: 30,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 13.0),
-            child: Icon(
-              Icons.density_medium,
-              color: Colors.black,
+          leading: Builder(
+
+            builder:(context)=> Padding(
+              padding: const EdgeInsets.only(left: 13.0),
+              child: InkWell(
+                onTap: () {
+                  Scaffold.of(context).openDrawer();
+                },
+                child: Icon(
+                  Icons.density_medium,
+                  color: Colors.black,
+                ),
+              ),
             ),
           ),
           actions: [
@@ -49,6 +79,47 @@ class Home extends StatelessWidget {
             )
           ],
         ),
+        drawer:   Drawer(
+          width: 250,
+          elevation: 0,
+                  child: ListView(
+                    // Important: Remove any padding from the ListView.
+                    padding: EdgeInsets.zero,
+                    children: [
+                       DrawerHeader(
+                        
+                        padding: EdgeInsets.all(50),
+                        margin: EdgeInsets.zero,
+                        curve: Curves.bounceOut,
+                        decoration: BoxDecoration(
+                          image:DecorationImage(
+                            fit: BoxFit.cover,
+                            image: AssetImage("assets/images/backdrop_2.jpg")
+                            ),
+                          color: Color.fromARGB(255, 0, 0, 0),
+                        ),
+                        child: Text('',style:TextStyle(
+                          color:Colors.white,
+                         
+                          )),
+                      ),
+                      ListTile(
+                        title: const Text('Movies'),
+                        onTap: () {
+                          // Update the state of the app.
+                          // ...
+                        },
+                      ),
+                      ListTile(
+                        title: const Text('about us'),
+                        onTap: () {
+                          // Update the state of the app.
+                          // ...
+                        },
+                      ),
+                    ],
+                  ),
+                ),
         body: Padding(
           padding: const EdgeInsets.only(bottom: 20),
           child: Column(
@@ -56,7 +127,11 @@ class Home extends StatelessWidget {
               SizedBox(height: 10),
               Padding(
                 padding: const EdgeInsets.all(20),
-                child: Head(),
+                child: Head(() {
+                  setState(() {
+                    print("me");
+                  });
+                }),
               ),
               SizedBox(
                 height: 10,
@@ -75,7 +150,17 @@ class Home extends StatelessWidget {
               SizedBox(
                 height: 10,
               ),
-              Movies()
+              FutureBuilder(
+                future: DataManager.getMovies(sections[selected_section]),
+                builder: (BuildContext ctx, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.done) {
+                    manage(snapshot.data);
+                    return Movies(movies);
+                  } else {
+                    return CircularProgressIndicator();
+                  }
+                },
+              )
             ],
           ),
         ));
@@ -106,13 +191,15 @@ class CategoriesCard extends StatelessWidget {
 }
 
 class Head extends StatefulWidget {
+  VoidCallback fun;
+  Head(this.fun);
   @override
   State<Head> createState() => _HeadState();
 }
 
 class _HeadState extends State<Head> {
   int current_section = 0;
-  List<String> heads = ["In Theatre","Box office","Coming soon"];
+  List<String> heads = ["In Theatre", "Box office", "Coming soon"];
   int index = 0;
 
   @override
@@ -120,59 +207,60 @@ class _HeadState extends State<Head> {
     return Container(
       height: 50,
       width: double.infinity,
-     
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         shrinkWrap: true,
-        itemCount:heads.length,
-        itemBuilder:(context, index){
-         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal:10.0),
-          child: InkWell(
-            onTap: () {
-              print(current_section);
-              print(index);
-              setState(() {
-                current_section = index;
-              });
-            },
-            child: Container(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    heads[index],
-                    style: TextStyle(
-                        color: current_section == index
-                            ? kTextColor
-                            : kTextLightColor,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w600),
-                  ),
-                  Visibility(
-                    visible: current_section == index,
-                    child: Container(
-                      padding: EdgeInsets.only(right: 10),
-                      height: 6,
-                      width: 40,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        color: kSecondaryColor,
-                      ),
+        itemCount: heads.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10.0),
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  selected_section = index;
+                  widget.fun();
+                  current_section = index;
+                });
+              },
+              child: Container(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      heads[index],
+                      style: TextStyle(
+                          color: current_section == index
+                              ? kTextColor
+                              : kTextLightColor,
+                          fontSize: 30,
+                          fontWeight: FontWeight.w600),
                     ),
-                  )
-                ],
+                    Visibility(
+                      visible: current_section == index,
+                      child: Container(
+                        padding: EdgeInsets.only(right: 10),
+                        height: 6,
+                        width: 40,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: kSecondaryColor,
+                        ),
+                      ),
+                    )
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-        }
+          );
+        },
       ),
     );
   }
 }
 
 class Movies extends StatefulWidget {
+  List movies;
+  Movies(this.movies);
   @override
   State<Movies> createState() => _MoviesState();
 }
@@ -181,6 +269,7 @@ class _MoviesState extends State<Movies> {
   PageController? _Controller;
   Animation? _AController;
   int initialPagevar = 1;
+
   @override
   void initState() {
     super.initState();
@@ -212,7 +301,7 @@ class _MoviesState extends State<Movies> {
               });
             },
             controller: _Controller,
-            itemCount: movies.length,
+            itemCount: widget.movies.length,
             physics: ClampingScrollPhysics(),
             itemBuilder: (ctx, index) {
               return AnimatedBuilder(
@@ -232,7 +321,7 @@ class _MoviesState extends State<Movies> {
                         opacity: initialPagevar == index ? 1 : 0.4,
                         child: Transform.rotate(
                             angle: pi * value,
-                            child: MovieCard(movies[index])));
+                            child: MovieCard(widget.movies[index])));
                   });
             },
           ),
@@ -266,7 +355,7 @@ class MovieCard extends StatelessWidget {
                     boxShadow: [kDefaultShadow],
                     image: DecorationImage(
                         fit: BoxFit.fill,
-                        image: AssetImage(movie.poster as String)),
+                        image: NetworkImage(movie.poster as String)),
                   ),
                 ),
               ),
